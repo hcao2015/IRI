@@ -6,17 +6,14 @@ import numpy as np
 import os
 import re
 
-BASE_PATH = os.path.join(os.getcwd(), 'IRIData')
+from constants import BASE_PATH, FLAVOR_WORDS, SKIP_WORDS, FULL_WORDS, FOODS_DRINK
+from collections import defaultdict, Counter
 
 
 class Items(object):
-    DRINKS = ['beer', 'carbbev', 'coffee']
-    FOODS = ['coldcer', 'fzdinent', 'fxpizza', 'hotdog', 'margbutr', 'mayo', 'milk', 'mustketc',
-             'peanbutr', 'saltsnck', 'soup', 'spagsauce', 'sugarsub', 'yogurt']
 
-    def __init__(self, item_info, item_type):
+    def __init__(self, item_info):
         self.item_info = item_info
-        self.item_type = item_type
 
     def transform_upc(self, x):
         frags = str(x).split('-')
@@ -140,7 +137,7 @@ class Items(object):
         self.item_info["category"] = self.item_info["L1"].apply(lambda x: x.split('-')[1].strip())
 
         # Transform fat content to 4 different fat levels
-        if self.item_type in self.FOODS and 'FAT CONTENT' in items_columns:
+        if self.item_info["category"][0] in FOODS_DRINK and 'FAT CONTENT' in items_columns:
             self.item_info['fat_level'] = self.item_info['FAT CONTENT'].apply(lambda x: self.transform_fat_content(x))
 
         # Transform calorie level to 3 different levels
@@ -169,7 +166,7 @@ class Items(object):
         self.item_info = self.item_info.loc[:, self.item_info.columns.isin(["COLUPC", "category", "PRODUCT TYPE",
                                                                             "fat_level", "calorie_level", "sugar_level",
                                                                             "caffeine_level", "product_subtype",
-                                                                            "user_info", "FLAVOR/SCENT", "VOL_EQ"])]
+                                                                            "user_info", "FLAVOR/SCENT"])]
 
         # There shouldn't be duplicates, but drop if there is
         self.item_info = self.item_info.drop_duplicates()
@@ -213,6 +210,52 @@ def extract_panels_demo():
     return panels_demos
 
 
+def transform_flavor(items):
+    flavor_cat_mapping = {}
+    for match_word, list_words in FLAVOR_WORDS.items():
+        for w in list_words:
+            flavor_cat_mapping[w] = match_word
+
+    flavor_list = items['FLAVOR/SCENT'].value_counts().rename_axis('flavor').reset_index(name='count')
+    flavor_list["flavor_map"] = ""
+
+    # An original flavor can contain multiple flavors (need to account those separately)
+    flavor_count = defaultdict(int)
+
+    for i, row in flavor_list.iterrows():
+        if isinstance(row.flavor, str):
+            if row['flavor'] in FULL_WORDS:
+                flavor_list.at[i, 'flavor_map'] = [row['flavor']]
+                flavor_count[row['flavor']] += row['count']
+            else:
+                new = []
+                words = re.sub('[//|&|#]', ' ', row['flavor']).split()
+                for word in words:
+                    word_s = word.strip()
+                    if len(word_s) > 2 and word_s not in SKIP_WORDS:
+                        if flavor_cat_mapping.get(word_s):
+                            word_s = flavor_cat_mapping[word_s]
+                        if word_s not in new:
+                            new.append(word_s)
+                            flavor_count[word_s] += row['count']
+                flavor_list.at[i, 'flavor_map'] = new
+
+    top_400_common_flavors = list(dict(Counter(flavor_count).most_common(400)).keys())
+
+    items['flavor_profile'] = items['FLAVOR/SCENT'].apply(lambda x: mapping_flavor_helper(x,
+                                                                                          flavor_list,
+                                                                                          top_400_common_flavors))
+    return items
+
+
+def mapping_flavor_helper(x, flavor_list, top_400_common_flavors):
+    if not isinstance(x, str):
+        return ''
+    flavors = flavor_list.loc[flavor_list['flavor'] == x, 'flavor_map'].item()
+    new_flavor = [flavor for flavor in flavors if flavor in top_400_common_flavors]
+    return ', '.join(new_flavor) if len(new_flavor) > 0 else ''
+
+
 def extract_items():
     # Extract items info
     items = None
@@ -221,11 +264,12 @@ def extract_items():
             df_info = file_name.split('.')[0].split('_')[1]
             print(f"** {df_info}")
             df = pd.read_excel(os.path.join(root, file_name), sheet_name="Sheet1")
-            df = Items(df, df_info).clean()
+            df = Items(df).clean()
             if items is None:
                 items = df
             else:
                 items = pd.concat([items, df], ignore_index=True)
+    items = transform_flavor(items)
     return items
 
 
