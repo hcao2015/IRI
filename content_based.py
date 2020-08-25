@@ -25,6 +25,7 @@ E   |    1      |      1     |    0         |
 F   |    1      |      1     |    0         |
 ---------------------------------------------
 """
+import pandas as pd
 import numpy as np
 import os
 
@@ -33,11 +34,11 @@ from surprise import PredictionImpossible
 from sklearn.metrics.pairwise import cosine_similarity
 import heapq
 
-from .constants import ITEM_SIMILARITIES_DIR
+from .constants import ITEM_SIMILARITIES_DIR, CATEGORY_MAPPING
 
 
 class ContentKNNAlgo(AlgoBase):
-    def __init__(self, items, k=20, verbose=False):
+    def __init__(self, items, k=8, verbose=False):
         super().__init__()
         self.similarities = None
         self.k = k
@@ -48,16 +49,14 @@ class ContentKNNAlgo(AlgoBase):
         # Initialize train_set
         AlgoBase.fit(self, train_set)
 
-        if os.path.isdir(ITEM_SIMILARITIES_DIR):
+        if os.path.isfile(ITEM_SIMILARITIES_DIR):
             if self.verbose:
                 print('Loading similarities between items....')
-            with open(ITEM_SIMILARITIES_DIR, 'rb') as file:
-                self.similarities = np.load(file)
+            self.similarities = np.load(ITEM_SIMILARITIES_DIR, mmap_mode='r+')
             if self.verbose:
                 print('Finish loading similarities between items')
         else:
             # Load groceries items vectors to compute similarities between items
-            # Note: this takes loooooong time to run
             if self.verbose:
                 print('Computing similarities between items, will take a while....')
             self.compute_cosine_similarity()
@@ -69,14 +68,19 @@ class ContentKNNAlgo(AlgoBase):
 
     def compute_cosine_similarity(self):
         # Compute from items vector to similarity
-        # It's gonna take roughly 90 mins for 182,726 items to be processed
-        items_mat = self.items.drop(['itemID'], axis=1).values
-        n = items_mat.shape[0]
+        iter = 0
+        n = self.items.shape[0]
         self.similarities = np.zeros((n, n))
-        for i in range(n):
-            if self.verbose:
-                print(i)
-            self.similarities[i, :] = cosine_similarity([items_mat[i]], items_mat)
+        for name, k in CATEGORY_MAPPING.items():
+            dt = self.items.loc[self.items['category'] == k]
+            step = dt.shape[0]
+            # TODO: Only salt snack has memory error, pass for now. Come back to fix later
+            if k != 24:
+                dt_mat = dt.drop(['itemID', 'category'], axis=1).values
+                sim = cosine_similarity(dt_mat)
+                self.similarities[iter: iter+step, iter: iter + step] = sim
+            iter += step
+        self.items = None
 
     def estimate(self, user_id, item_id):
         if not (self.trainset.knows_user(user_id) and self.trainset.knows_item(item_id)):
@@ -102,20 +106,3 @@ class ContentKNNAlgo(AlgoBase):
         predicted_rating = weighted_sum / sim_total
 
         return predicted_rating
-
-    def recommend_per_item(self, item_id, num_result=5):
-        # Given item ID, return n recommended items that are similar
-        if not (self.trainset.knows_user(item_id)):
-            raise PredictionImpossible('Unknown item ID')
-
-        result = {}
-        for idx, row in self.trainset.iterrows():
-            similar_indices = self.similarities[idx].argsort()[:-100:-1]
-            similar_items = [(self.similarities[idx][i], self.trainset['id'][i]) for i in similar_indices]
-            result[row['id']] = similar_items[1:]
-        return result
-
-    def recommend_per_user(self, user_id, num_result=5):
-        # Given user ID, return n recommended items for each item the user ID has brought
-        if not (self.trainset.knows_user(user_id)):
-            raise PredictionImpossible('Unknown user ID')

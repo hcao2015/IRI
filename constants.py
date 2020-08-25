@@ -2,7 +2,40 @@ import os
 
 # Directories
 BASE_PATH = os.path.join(os.getcwd(), 'IRIData')
-ITEM_SIMILARITIES_DIR = os.path.join(BASE_PATH, 'item_similarities.npy')
+ITEM_SIMILARITIES_DIR = os.path.join(os.getcwd(), 'item_similarities.npy')
+
+CATEGORY_MAPPING = {'CIGARETTES': 1,
+                    'SUGAR SUBSTITUTES': 2,
+                    'TOOTHPASTE': 3,
+                    'DIAPERS': 4,
+                    'NUT BUTTER': 5,
+                    'FZ PIZZA': 6,
+                    'SPAGHETTI/ITALIAN SAUC': 7,
+                    'HOUSEHOLD CLEANER': 8,
+                    'RAZORS': 9,
+                    'FRANKFURTERS': 10,
+                    'SHAMPOO': 11,
+                    'BEER/ALE/ALCOHOLIC CID': 12,
+                    'MILK': 13,
+                    'BLADES': 14,
+                    'MAYONNAISE': 15,
+                    'MUSTARD & KETCHUP': 16,
+                    'SOUP': 17,
+                    'FZ DINNERS/ENTREES': 18,
+                    'TOILET TISSUE': 19,
+                    'PHOTOGRAPHY SUPPLIES': 20,
+                    'LAUNDRY DETERGENT': 21,
+                    'COLD CEREAL': 22,
+                    'FACIAL TISSUE': 23,
+                    'SALTY SNACKS': 24,
+                    'COFFEE': 25,
+                    'YOGURT': 26,
+                    'TOOTHBRUSH/DENTAL ACCE': 27,
+                    'DEODORANT': 28,
+                    'CARBONATED BEVERAGES': 29,
+                    'MARGARINE/SPREADS': 30,
+                    'PAPER TOWELS': 31
+                    }
 
 FOODS_DRINK = ['CARBONATED BEVERAGES', 'MAYONNAISE',
                'BEER/ALE/ALCOHOLIC CID', 'SALTY SNACKS', 'FZ PIZZA', 'MILK',
@@ -52,7 +85,8 @@ FLAVOR_WORDS = {
     'TOMATO': ['TOMAT', 'TOMT', 'TMT', 'TOM'],
     'CHILI': ['CHL'],
     'RANCH': ['RNCH'],
-    'BERRY': ['VERRY', 'PEABERRY', 'BRRY', 'BERRIES', 'HOLLYBERRY', 'WILDBERRY', 'BLACKBERRY', 'MARIONBERRY', 'BOYSENBERRY'],
+    'BERRY': ['VERRY', 'PEABERRY', 'BRRY', 'BERRIES', 'HOLLYBERRY', 'WILDBERRY', 'BLACKBERRY', 'MARIONBERRY',
+              'BOYSENBERRY'],
     'BEEF': ['BEF', 'BEE', 'BEEFSTOCK', 'BEEFY', 'BEEFSTEAK'],
     'ALMOND': ['ALMND'],
     'COLOMBIAN': ['COLOMBIN', 'CLMBN', 'COLOMBIA'],

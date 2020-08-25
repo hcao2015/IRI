@@ -26,7 +26,7 @@ pip install -r requirments.txt
     
     This will make it easier and faster for doing data exploratory and feeding into model.
     
-2. The main process is in `process_data.py`. This script calls:
+2. The main process is in `process_data.py`. Running this script calls:
 
     a. Vectoring data into ready-to-feed format, using `vectorize_data` in `process_data.py`
 
@@ -57,9 +57,12 @@ pip install -r requirments.txt
             Or top n recommended items, given userID.
     
     c. Model predictions are validated in `evaluation.py` (in process)
-        Methods of evaluations:
-    
-        i. Precision, Recall, F1 at k
 
-        ii. Stimulate users behavior
+        Methods of evaluations:
+        
+        i. Mean Absolute Error (MAE), and Root Mean Squared Error (RMSE)
+    
+        ii. Precision, Recall, F1 at k
+
+        iii. Stimulate users behavior
         

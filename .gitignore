@@ -1,3 +1,4 @@
 /.ipynb_checkpoints
 /IRIData
 /__pycache__/
+item_similarities.npy
